@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game COC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #1a202c; color: white; }
+        .card { transition: all 0.3s ease; }
+        .card.unanswered:hover { transform: translateY(-10px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .card.correct { background-color: #28a745 !important; cursor: not-allowed; }
+        .card.incorrect { background-color: #dc3545 !important; cursor: not-allowed; }
+        #modal { transition: opacity 0.3s ease; }
+        .loader { border-top-color: #4f46e5; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Bagian Info Pemain -->
+    <div id="player-info-section" class="w-full max-w-md text-center">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl">
+            <h1 class="text-4xl font-bold mb-6">Kotak Misteri</h1>
+            <input type="text" id="player-name" class="w-full bg-gray-700 rounded-lg p-3 mb-4 text-white placeholder-gray-400" placeholder="Nama Kamu" required>
+            <input type="text" id="team-name" class="w-full bg-gray-700 rounded-lg p-3 mb-6 text-white placeholder-gray-400" placeholder="Nama Tim" required>
+            <button id="start-game-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-3 px-4 rounded-lg text-lg">MULAI GAME</button>
+        </div>
+    </div>
+
+    <!-- Bagian Game -->
+    <div id="game-section" class="hidden w-full max-w-4xl">
+        <div class="flex justify-between items-center mb-6 px-2">
+            <div><p class="text-sm text-gray-400">Tim</p><h2 id="display-team-name" class="text-2xl font-bold"></h2></div>
+            <div class="text-right"><p class="text-sm text-gray-400">Total Skor</p><h2 id="display-score" class="text-2xl font-bold">0</h2></div>
+        </div>
+        <div id="card-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+        <div class="mt-8 text-center"><button id="finish-game-btn" class="bg-green-600 hover:bg-green-700 font-bold py-3 px-8 rounded-lg text-lg">Selesai & Kirim Skor</button></div>
+    </div>
+
+    <!-- Modal untuk Jawaban -->
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-3xl font-bold mb-2">Kotak Nomor <span id="modal-question-number"></span></h2>
+            <p class="text-gray-400 mb-6">Masukkan jawabanmu di bawah ini.</p>
+            <input type="text" id="answer-input" class="w-full bg-gray-700 rounded-lg p-3 mb-6 text-white text-center" placeholder="Jawabanmu...">
+            <div class="flex gap-4">
+                <button id="modal-cancel-btn" class="w-full bg-gray-600 hover:bg-gray-700 font-bold py-3 rounded-lg">Batal</button>
+                <button id="modal-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-3 rounded-lg flex items-center justify-center" disabled>
+                    <span class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-6 w-6 mr-3 hidden"></span>
+                    <span>Kirim</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===================================================================================
+        // !!! PENTING: GANTI URL DI BAWAH INI DENGAN URL APLIKASI WEB ANDA !!!
+        // ===================================================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtwRFsfkD1CnvJuq63cjhgLTotgljAzA-A-mcO2AdFBTK9tk7MR_WvXwGC67EljJdo/exec";
+        // ===================================================================================
+
+        let teamData = { name: "", score: 0 };
+        let answeredQuestions = [];
+
+        const playerInfoSection = document.getElementById('player-info-section');
+        const gameSection = document.getElementById('game-section');
+        const cardGrid = document.getElementById('card-grid');
+        const modal = document.getElementById('modal');
+        const answerInput = document.getElementById('answer-input');
+        const modalSubmitBtn = document.getElementById('modal-submit-btn');
+
+        document.getElementById('start-game-btn').onclick = startGame;
+        document.getElementById('finish-game-btn').onclick = finishGame;
+        document.getElementById('modal-cancel-btn').onclick = () => modal.classList.add('hidden');
+        modalSubmitBtn.onclick = submitAnswer;
+
+        function createCards() {
+            for (let i = 1; i <= 12; i++) {
+                const card = document.createElement('div');
+                card.className = 'card unanswered bg-gray-700 rounded-lg p-6 text-center cursor-pointer';
+                card.dataset.number = i;
+                card.innerHTML = `<h3 class="text-5xl font-bold">${i}</h3>`;
+                card.onclick = () => openModal(i);
+                cardGrid.appendChild(card);
+            }
+        }
+
+        function startGame() {
+            const teamName = document.getElementById('team-name').value.trim();
+            if (!teamName) { alert('Nama Tim tidak boleh kosong!'); return; }
+            teamData.name = teamName;
+            document.getElementById('display-team-name').textContent = teamName;
+            playerInfoSection.classList.add('hidden');
+            gameSection.classList.remove('hidden');
+        }
+
+        function openModal(number) {
+            if (answeredQuestions.includes(number)) return;
+            document.getElementById('modal-question-number').textContent = number;
+            modal.dataset.currentQuestion = number;
+            answerInput.value = '';
+            modalSubmitBtn.disabled = false;
+            modal.classList.remove('hidden');
+            answerInput.focus();
+        }
+
+        function submitAnswer() {
+            const questionNumber = modal.dataset.currentQuestion;
+            const userAnswer = answerInput.value;
+            if (!userAnswer.trim()) { alert('Jawaban tidak boleh kosong!'); return; }
+            
+            setLoading(true);
+
+            const validationUrl = `${SCRIPT_URL}?action=validate&number=${questionNumber}&answer=${encodeURIComponent(userAnswer)}`;
+            
+            fetch(validationUrl)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        const card = document.querySelector(`.card[data-number='${questionNumber}']`);
+                        answeredQuestions.push(parseInt(questionNumber));
+                        card.classList.remove('unanswered');
+                        if (res.correct) {
+                            teamData.score += 100;
+                            card.classList.add('correct');
+                        } else {
+                            card.classList.add('incorrect');
+                        }
+                        document.getElementById('display-score').textContent = teamData.score;
+                    } else {
+                        throw new Error(res.message);
+                    }
+                })
+                .catch(error => alert('Gagal memvalidasi jawaban: ' + error.message))
+                .finally(() => {
+                    setLoading(false);
+                    modal.classList.add('hidden');
+                });
+        }
+
+        function finishGame() {
+            if (confirm(`Kirim skor untuk Tim ${teamData.name} (${teamData.score} poin)?`)) {
+                const dataToSubmit = { teamName: teamData.name, score: teamData.score };
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(dataToSubmit),
+                })
+                .then(() => {
+                    alert('Skor berhasil dikirim!');
+                    window.location.href = 'papan-skor.html';
+                })
+                .catch(error => alert('Gagal mengirim skor: ' + error.message));
+            }
+        }
+
+        function setLoading(isLoading) {
+            const loader = modalSubmitBtn.querySelector('.loader');
+            const text = modalSubmitBtn.querySelector('span:not(.loader)');
+            if (isLoading) {
+                modalSubmitBtn.disabled = true;
+                loader.classList.remove('hidden');
+                text.textContent = 'Memeriksa...';
+            } else {
+                modalSubmitBtn.disabled = false;
+                loader.classList.add('hidden');
+                text.textContent = 'Kirim';
+            }
+        }
+        
+        createCards();
+    </script>
+</body>
+</html>
