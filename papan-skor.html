@@ -3,64 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Papan Skor Tim</title>
+    <title>Papan Skor Tim Ceria</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #1a202c; color: white; }
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background-color: #FDF6E3; /* Warna krem lembut */
+            color: #4A4A4A; 
+        }
+        h1, h2, h3 { font-family: 'Fredoka One', cursive; }
+        .rank-card {
+            border: 3px solid #4A4A4A;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="container mx-auto max-w-2xl">
         <div class="text-center mb-8">
-            <h1 class="text-5xl font-bold">Papan Skor Tim</h1>
-            <p class="text-gray-400 mt-2">Peringkat tim terhebat!</p>
+            <h1 class="text-6xl text-orange-500">Papan Skor</h1>
+            <p class="text-gray-500 mt-2 text-lg">Tim-tim paling hebat!</p>
         </div>
 
-        <div id="loader" class="text-center p-8">Memuat data...</div>
+        <div id="loader" class="text-center p-8 text-xl">Memuat data...</div>
 
-        <div id="leaderboard-container" class="hidden bg-gray-800 rounded-2xl overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-gray-700"><tr><th class="p-4">Peringkat</th><th class="p-4">Nama Tim</th><th class="p-4 text-right">Skor</th></tr></thead>
-                <tbody id="leaderboard-body"></tbody>
-            </table>
+        <div id="leaderboard-container" class="hidden space-y-3">
+            <!-- Peringkat akan ditampilkan di sini -->
         </div>
         
-        <div class="text-center mt-8"><a href="index.html" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg">Main Lagi!</a></div>
+        <div class="text-center mt-8">
+            <a href="index.html" class="bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-3 px-6 rounded-lg text-xl border-2 border-gray-700 shadow-md inline-block">Main Lagi!</a>
+        </div>
     </div>
 
     <script>
-        // ===================================================================================
-        // !!! PENTING: GANTI URL DI BAWAH INI DENGAN URL APLIKASI WEB ANDA !!!
-        // ===================================================================================
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtwRFsfkD1CnvJuq63cjhgLTotgljAzA-A-mcO2AdFBTK9tk7MR_WvXwGC67EljJdo/exec";
-        // ===================================================================================
+        const medalColors = ['text-yellow-400', 'text-gray-400', 'text-orange-400'];
 
         function loadScores() {
             const dataUrl = `${SCRIPT_URL}?action=getScores`;
-            fetch(dataUrl)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('loader').classList.add('hidden');
-                    document.getElementById('leaderboard-container').classList.remove('hidden');
-                    const leaderboardBody = document.getElementById('leaderboard-body');
+            fetch(dataUrl).then(response => response.json()).then(data => {
+                document.getElementById('loader').classList.add('hidden');
+                const container = document.getElementById('leaderboard-container');
+                container.classList.remove('hidden');
+                
+                if (data.leaderboard.length === 0) {
+                    container.innerHTML = '<p class="text-center p-4">Belum ada data skor!</p>';
+                    return;
+                }
+
+                data.leaderboard.forEach((team, index) => {
+                    const rank = index + 1;
+                    const card = document.createElement('div');
+                    card.className = 'rank-card bg-white rounded-xl p-4 flex items-center space-x-4';
                     
-                    if (data.leaderboard.length === 0) {
-                        leaderboardBody.innerHTML = '<tr><td colspan="3" class="text-center p-4">Belum ada data skor!</td></tr>';
-                        return;
+                    let medalHTML = '';
+                    if (rank <= 3) {
+                        medalHTML = `<svg class="w-8 h-8 ${medalColors[rank-1]}" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`;
+                    } else {
+                        medalHTML = `<span class="text-2xl font-bold w-8 text-center">${rank}</span>`;
                     }
 
-                    data.leaderboard.forEach((team, index) => {
-                        const row = document.createElement('tr');
-                        row.className = 'border-b border-gray-700';
-                        row.innerHTML = `<td class="p-4 font-bold text-xl">${index + 1}</td><td class="p-4">${team.teamName}</td><td class="p-4 text-right font-bold text-lg text-yellow-300">${team.score}</td>`;
-                        leaderboardBody.appendChild(row);
-                    });
-                })
-                .catch(error => {
-                    document.getElementById('loader').textContent = 'Gagal memuat data.';
-                    console.error('Error:', error);
+                    card.innerHTML = `
+                        <div>${medalHTML}</div>
+                        <div class="flex-grow"><h3 class="text-xl font-bold text-gray-800">${team.teamName}</h3></div>
+                        <div class="text-2xl font-bold text-pink-500">${team.score}</div>
+                    `;
+                    container.appendChild(card);
                 });
+            }).catch(error => {
+                document.getElementById('loader').textContent = 'Gagal memuat data.';
+                console.error('Error:', error);
+            });
         }
         window.onload = loadScores;
     </script>
