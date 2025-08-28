@@ -3,16 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game COC</title>
+    <title>Game CoC</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #1a202c; color: white; }
-        .card { transition: all 0.3s ease; }
-        .card.unanswered:hover { transform: translateY(-10px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
-        .card.correct { background-color: #28a745 !important; cursor: not-allowed; }
-        .card.incorrect { background-color: #dc3545 !important; cursor: not-allowed; }
-        #modal { transition: opacity 0.3s ease; }
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background-color: #FDF6E3; /* Warna krem lembut */
+            color: #4A4A4A; 
+        }
+        h1, h2, h3 { font-family: 'Fredoka One', cursive; }
+        .card { 
+            transition: all 0.3s ease; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 3px solid #4A4A4A;
+            position: relative;
+            overflow: hidden;
+        }
+        .card.unanswered:hover { 
+            transform: translateY(-10px) rotate(3deg); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+        .card-icon { width: 60%; height: 60%; margin: auto; }
+        .card-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s ease;
+        }
+        .card.correct, .card.incorrect { cursor: not-allowed; }
+        .card.correct .card-overlay { background-color: rgba(40, 167, 69, 0.85); opacity: 1; transform: scale(1); }
+        .card.incorrect .card-overlay { background-color: rgba(220, 53, 69, 0.85); opacity: 1; transform: scale(1); }
         .loader { border-top-color: #4f46e5; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -21,49 +48,62 @@
 
     <!-- Bagian Info Pemain -->
     <div id="player-info-section" class="w-full max-w-md text-center">
-        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl">
-            <h1 class="text-4xl font-bold mb-6">Input Jawaban</h1>
-            <input type="text" id="player-name" class="w-full bg-gray-700 rounded-lg p-3 mb-4 text-white placeholder-gray-400" placeholder="Nama Kamu" required>
-            <input type="text" id="team-name" class="w-full bg-gray-700 rounded-lg p-3 mb-6 text-white placeholder-gray-400" placeholder="Nama Tim" required>
-            <button id="start-game-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-3 px-4 rounded-lg text-lg">MULAI GAME</button>
+        <div class="bg-white p-8 rounded-2xl shadow-lg border-4 border-gray-700">
+            <svg class="w-24 h-24 mx-auto mb-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+            <h1 class="text-5xl text-orange-500 mb-6">Kotak Jawaban</h1>
+            <input type="text" id="player-name" class="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 text-center text-lg focus:border-orange-500 focus:ring-orange-500" placeholder="Nama Kamu" required>
+            <input type="text" id="team-name" class="w-full border-2 border-gray-300 rounded-lg p-3 mb-6 text-center text-lg focus:border-orange-500 focus:ring-orange-500" placeholder="Nama Tim" required>
+            <button id="start-game-btn" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-3 px-4 rounded-lg text-xl border-2 border-gray-700 shadow-md">MULAI!</button>
         </div>
     </div>
 
     <!-- Bagian Game -->
     <div id="game-section" class="hidden w-full max-w-4xl">
-        <div class="flex justify-between items-center mb-6 px-2">
-            <div><p class="text-sm text-gray-400">Tim</p><h2 id="display-team-name" class="text-2xl font-bold"></h2></div>
-            <div class="text-right"><p class="text-sm text-gray-400">Total Skor</p><h2 id="display-score" class="text-2xl font-bold">0</h2></div>
+        <div class="bg-white p-4 rounded-xl shadow-lg border-4 border-gray-700 flex justify-between items-center mb-6">
+            <div><p class="text-sm text-gray-500">Tim Hebat</p><h2 id="display-team-name" class="text-3xl text-indigo-600"></h2></div>
+            <div class="text-right"><p class="text-sm text-gray-500">Skor Kamu</p><h2 id="display-score" class="text-3xl text-pink-500">0</h2></div>
         </div>
         <div id="card-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
-        <div class="mt-8 text-center"><button id="finish-game-btn" class="bg-green-600 hover:bg-green-700 font-bold py-3 px-8 rounded-lg text-lg">Selesai & Kirim Skor</button></div>
+        <div class="mt-8 text-center"><button id="finish-game-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg text-xl border-2 border-gray-700 shadow-md">Selesai & Kirim Skor</button></div>
     </div>
 
     <!-- Modal untuk Jawaban -->
-    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
-            <h2 class="text-3xl font-bold mb-2">Kotak Nomor <span id="modal-question-number"></span></h2>
-            <p class="text-gray-400 mb-6">Masukkan jawabanmu di bawah ini.</p>
-            <input type="text" id="answer-input" class="w-full bg-gray-700 rounded-lg p-3 mb-6 text-white text-center" placeholder="Jawabanmu...">
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center border-4 border-gray-700">
+            <h2 class="text-4xl text-cyan-500 mb-2">Kotak Nomor <span id="modal-question-number"></span></h2>
+            <p class="text-gray-500 mb-6">Apa ya jawabannya?</p>
+            <input type="text" id="answer-input" class="w-full border-2 border-gray-300 rounded-lg p-3 mb-6 text-center text-xl focus:border-cyan-500 focus:ring-cyan-500" placeholder="...">
             <div class="flex gap-4">
-                <button id="modal-cancel-btn" class="w-full bg-gray-600 hover:bg-gray-700 font-bold py-3 rounded-lg">Batal</button>
-                <button id="modal-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-3 rounded-lg flex items-center justify-center" disabled>
+                <button id="modal-cancel-btn" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 rounded-lg border-2 border-gray-700">Batal</button>
+                <button id="modal-submit-btn" class="w-full bg-cyan-400 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg flex items-center justify-center border-2 border-gray-700" disabled>
                     <span class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-6 w-6 mr-3 hidden"></span>
-                    <span>Kirim</span>
+                    <span>Cek Jawaban</span>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // ===================================================================================
-        // !!! PENTING: GANTI URL DI BAWAH INI DENGAN URL APLIKASI WEB ANDA !!!
-        // ===================================================================================
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtwRFsfkD1CnvJuq63cjhgLTotgljAzA-A-mcO2AdFBTK9tk7MR_WvXwGC67EljJdo/exec";
-        // ===================================================================================
-
         let teamData = { name: "", score: 0 };
         let answeredQuestions = [];
+        
+        // Daftar Ikon untuk Kartu
+        const icons = [
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />', // Sun
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />', // Moon
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />', // Star
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />', // Cloud
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />', // Heart
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />', // Clock
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />', // Home
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />', // Play
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />', // Pin
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H5v-2H3v-2H1v-4a6 6 0 016-6h4a6 6 0 016 6z" />', // Key
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />', // Check
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l7-3 7 3z" />' // Bookmark
+        ];
+        const cardColors = ['bg-red-300', 'bg-blue-300', 'bg-green-300', 'bg-yellow-300', 'bg-purple-300', 'bg-pink-300', 'bg-indigo-300', 'bg-teal-300', 'bg-orange-300', 'bg-cyan-300', 'bg-lime-300', 'bg-fuchsia-300'];
 
         const playerInfoSection = document.getElementById('player-info-section');
         const gameSection = document.getElementById('game-section');
@@ -80,9 +120,15 @@
         function createCards() {
             for (let i = 1; i <= 12; i++) {
                 const card = document.createElement('div');
-                card.className = 'card unanswered bg-gray-700 rounded-lg p-6 text-center cursor-pointer';
+                const color = cardColors[i-1 % cardColors.length];
+                card.className = `card unanswered ${color} rounded-2xl p-4 text-center cursor-pointer flex items-center justify-center`;
                 card.dataset.number = i;
-                card.innerHTML = `<h3 class="text-5xl font-bold">${i}</h3>`;
+                card.innerHTML = `
+                    <svg class="card-icon text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">${icons[i-1]}</svg>
+                    <div class="card-overlay">
+                        <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"></svg>
+                    </div>
+                `;
                 card.onclick = () => openModal(i);
                 cardGrid.appendChild(card);
             }
@@ -111,49 +157,38 @@
             const questionNumber = modal.dataset.currentQuestion;
             const userAnswer = answerInput.value;
             if (!userAnswer.trim()) { alert('Jawaban tidak boleh kosong!'); return; }
-            
             setLoading(true);
-
             const validationUrl = `${SCRIPT_URL}?action=validate&number=${questionNumber}&answer=${encodeURIComponent(userAnswer)}`;
-            
-            fetch(validationUrl)
-                .then(response => response.json())
-                .then(res => {
-                    if (res.status === 'success') {
-                        const card = document.querySelector(`.card[data-number='${questionNumber}']`);
-                        answeredQuestions.push(parseInt(questionNumber));
-                        card.classList.remove('unanswered');
-                        if (res.correct) {
-                            teamData.score += 100;
-                            card.classList.add('correct');
-                        } else {
-                            card.classList.add('incorrect');
-                        }
-                        document.getElementById('display-score').textContent = teamData.score;
+            fetch(validationUrl).then(response => response.json()).then(res => {
+                if (res.status === 'success') {
+                    const card = document.querySelector(`.card[data-number='${questionNumber}']`);
+                    const overlayIcon = card.querySelector('.card-overlay svg');
+                    answeredQuestions.push(parseInt(questionNumber));
+                    card.classList.remove('unanswered');
+                    if (res.correct) {
+                        teamData.score += 100;
+                        card.classList.add('correct');
+                        overlayIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
                     } else {
-                        throw new Error(res.message);
+                        card.classList.add('incorrect');
+                        overlayIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
                     }
-                })
-                .catch(error => alert('Gagal memvalidasi jawaban: ' + error.message))
-                .finally(() => {
-                    setLoading(false);
-                    modal.classList.add('hidden');
-                });
+                    document.getElementById('display-score').textContent = teamData.score;
+                } else { throw new Error(res.message); }
+            }).catch(error => alert('Gagal memvalidasi jawaban: ' + error.message)).finally(() => {
+                setLoading(false);
+                modal.classList.add('hidden');
+            });
         }
 
         function finishGame() {
             if (confirm(`Kirim skor untuk Tim ${teamData.name} (${teamData.score} poin)?`)) {
                 const dataToSubmit = { teamName: teamData.name, score: teamData.score };
-                fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(dataToSubmit),
-                })
+                fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(dataToSubmit), })
                 .then(() => {
                     alert('Skor berhasil dikirim!');
                     window.location.href = 'papan-skor.html';
-                })
-                .catch(error => alert('Gagal mengirim skor: ' + error.message));
+                }).catch(error => alert('Gagal mengirim skor: ' + error.message));
             }
         }
 
@@ -167,7 +202,7 @@
             } else {
                 modalSubmitBtn.disabled = false;
                 loader.classList.add('hidden');
-                text.textContent = 'Kirim';
+                text.textContent = 'Cek Jawaban';
             }
         }
         
